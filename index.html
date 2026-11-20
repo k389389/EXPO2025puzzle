@@ -119,7 +119,7 @@ function makeGame() {
   statusEl.textContent='正しい向きで9ピースをそろえよう！';
 }
 function attach(el) {
-  let drag=null, moved=false;
+  let drag=null, moved=false, wasSelectedAtDown=false;
   el.addEventListener('pointerdown', e=>{
     e.preventDefault();
     el.setPointerCapture(e.pointerId);
@@ -137,7 +137,7 @@ function attach(el) {
       originalPosition:el.style.position
     };
     moved=false;
-    const wasSelectedAtDown = selected === el;
+    wasSelectedAtDown = selected === el;
     select(el);
     // Switch to viewport coordinates while dragging: the piece follows the finger
     // smoothly even when it crosses the boundary between tray and board.
@@ -166,6 +166,7 @@ function attach(el) {
     if(!wasMoved) {
       restorePosition(el,d);
       if(wasSelectedAtDown) rotatePiece(el);
+      wasSelectedAtDown=false;
       return;
     }
     const b=board.getBoundingClientRect();
@@ -191,12 +192,14 @@ function attach(el) {
         el.classList.remove('placed');
       }
     }
+    wasSelectedAtDown=false;
     checkWin();
   });
   el.addEventListener('pointercancel',()=>{
     if(!drag) return;
     restorePosition(el,drag);
     drag=null;
+    wasSelectedAtDown=false;
   });
   // Prevent the browser's synthetic double-click zoom on supported browsers.
   el.addEventListener('dblclick',e=>{ e.preventDefault(); e.stopPropagation(); });
