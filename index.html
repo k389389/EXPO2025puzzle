@@ -207,35 +207,6 @@ function makeGame() {
   }
   statusEl.textContent='正しい向きで9ピースをそろえよう！';
 }
-
-let sfxContext = null;
-function playSfx(kind) {
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    if (!sfxContext) sfxContext = new AudioCtx();
-    if (sfxContext.state === 'suspended') sfxContext.resume();
-    const ctx = sfxContext;
-    const now = ctx.currentTime;
-    const notes = kind === 'place'
-      ? [{f:523.25,t:0,d:0.10},{f:783.99,t:0.055,d:0.14}]
-      : kind === 'rotate'
-      ? [{f:440,t:0,d:0.07},{f:660,t:0.045,d:0.09}]
-      : [{f:620,t:0,d:0.055}];
-    notes.forEach(n => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = kind === 'tap' ? 'triangle' : 'sine';
-      osc.frequency.setValueAtTime(n.f, now + n.t);
-      gain.gain.setValueAtTime(0.0001, now + n.t);
-      gain.gain.exponentialRampToValueAtTime(kind === 'tap' ? 0.045 : 0.085, now + n.t + 0.008);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + n.t + n.d);
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.start(now + n.t); osc.stop(now + n.t + n.d + 0.01);
-    });
-  } catch (e) { /* 音声非対応・再生不可でもゲームは続行 */ }
-}
-
 function attach(el) {
   let drag=null, moved=false, wasSelectedAtDown=false;
   el.addEventListener('pointerdown', e=>{
@@ -286,12 +257,7 @@ function attach(el) {
     drag=null;
     if(!wasMoved) {
       restorePosition(el,d);
-      if(wasSelectedAtDown) {
-        playSfx('rotate');
-        rotatePiece(el);
-      } else {
-        playSfx('tap');
-      }
+      if(wasSelectedAtDown) rotatePiece(el);
       wasSelectedAtDown=false;
       return;
     }
@@ -340,7 +306,6 @@ function restorePosition(el,d) {
   d.originalParent.appendChild(el);
 }
 function placeOnBoard(el,idx) {
-  playSfx('place');
   const occupant=pieces.find(p=>p!==el && p.dataset.placed==='true' && Number(p.dataset.cell)===idx);
   if(occupant) returnToTray(occupant);
   const col=idx%3, row=Math.floor(idx/3);
